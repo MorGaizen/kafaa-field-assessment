@@ -283,7 +283,7 @@ const TOTALQ=PILLARS.reduce((a,p)=>a+p.q.length,0);
 
 /* ---------- radar ---------- */
 function radar(){
-  const W=420,H=380,cx=W/2,cy=H/2+4,R=128,N=PILLARS.length;
+  const W=540,H=390,cx=W/2,cy=H/2+4,R=128,N=PILLARS.length;
   const pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/N;return [cx+Math.cos(a)*R*v/6, cy+Math.sin(a)*R*v/6]};
   let g="";
   for(let r=1;r<=6;r++){const pts=PILLARS.map((_,i)=>pt(i,r).join(",")).join(" ");
