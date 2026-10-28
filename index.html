@@ -198,7 +198,7 @@ textarea{resize:vertical;min-height:64px}
 .signimg img{width:100%;max-height:240px;object-fit:cover;display:block}
 .signimg .acts{position:absolute;right:10px;bottom:10px;display:flex;gap:8px}
 .signimg .acts button{background:rgba(0,0,0,.7);color:#fff;border:0;padding:6px 10px;font-size:12px;font-weight:600}
-.signimg .lbl{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 8px;border-radius:3px}
+.signimg .lbl{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 8px;border-radius:3px}
 .signadd{width:100%;border:1px dashed var(--ink-2);background:var(--card);color:var(--ink);padding:18px;display:flex;gap:14px;align-items:center;text-align:left}
 .signadd:hover{border-color:var(--red)}
 .signadd .ico{width:30px;height:30px;color:var(--red)}
@@ -440,6 +440,9 @@ function newView(){
    <label class="f">Kafaa assessor<input id="f_assessor" value="${esc(a.assessorName||myName)}"></label>
    <label class="f">TBC representative<input id="f_tbc" value="${esc(a.tbcRep)}"></label>
   </div>
+  ${a.id?"":`<div style="margin-top:14px"><div class="f" style="font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:4px">School sign photo</div>
+   ${pendingSign?`<div class="signimg"><img src="${esc(pendingSign.url)}" alt="School sign"><span class="lbl">School sign · report cover</span><div class="acts"><button type="button" id="fSignAdd">Retake</button><button type="button" id="fSignRm">Remove</button></div></div>`
+   :`<button type="button" class="signadd" id="fSignAdd"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M12 13m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0"/></svg></span><div><b>Take a photo of the school sign</b><small>Optional. Used on the site card and the PDF report cover</small></div></button>`}</div>`}
   <label class="f" style="margin-top:12px">Visit notes<textarea id="f_notes">${esc(a.notes)}</textarea></label>
   <div class="formactions"><button class="btn" type="submit" id="f_submit">${a.id?"Save details":"Create and start scoring"}</button><button class="btn ghost" type="button" id="cancelNew">Cancel</button></div>
   <p id="f_err" class="muted" role="alert"></p></form></div>`;
@@ -563,9 +566,12 @@ async function compress(file){
     return await new Promise(r=>c.toBlob(b=>r(b||file),"image/jpeg",.82));
   }catch(e){ return file }
 }
-let photoTarget=null;
+let photoTarget=null; let pendingSign=null;
 $("#fileIn").addEventListener("change",async ev=>{
   const files=[...ev.target.files]; ev.target.value=""; if(!photoTarget||!sb) return;
+  if(photoTarget.form){ const f=files[0]; if(!f) return; const keep={}; ["f_school","f_code","f_region","f_zone","f_contract","f_stage","f_date","f_assessor","f_tbc","f_notes"].forEach(id=>{const el=$("#"+id); if(el) keep[id]=el.value});
+    const blob=await compress(f); if(pendingSign) URL.revokeObjectURL(pendingSign.url); pendingSign={blob,url:URL.createObjectURL(blob)}; render();
+    Object.entries(keep).forEach(([id,v])=>{const el=$("#"+id); if(el) el.value=v}); return }
   if(photoTarget.sign){ const aid=photoTarget.aid; const f=files[0]; if(!f) return; const old=curDoc&&curDoc.signPhoto;
     uploading.sign=1; renderKeepFocus(); setSave("saving","Uploading school sign photo");
     try{ const blob=await compress(f); const ext=(blob.type||"image/jpeg").split("/")[1].replace("jpeg","jpg");
@@ -707,7 +713,7 @@ async function makePDF(btn){
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
   const t=e.target.closest("button,img[data-view]"); if(!t) return;
-  if(t.id==="newBtn"||t.id==="newBtn2"){curEdit=null;view="new";render();$("#f_school")?.focus();return}
+  if(t.id==="newBtn"||t.id==="newBtn2"){curEdit=null;pendingSign=null;view="new";render();$("#f_school")?.focus();return}
   if(t.id==="backList"){cur=null;curDoc=null;view="list";try{localStorage.removeItem("kafaa-fa-last")}catch(_){};render();loadList();return}
   if(t.id==="signOut"){await sb.auth.signOut();location.reload();return}
   if(t.id==="cancelNew"){view=curEdit&&curEdit.id?"work":"list";render();return}
@@ -721,6 +727,8 @@ document.addEventListener("click",async e=>{
     const y=window.scrollY; render(); window.scrollTo(0,y); return}
   if(t.dataset.tbc&&canWrite){const i=+t.dataset.q;const A=itemsFor(tab);A.items[i]=A.items[i]||{};
     const v=+t.dataset.tbc; A.items[i].tbc=(A.items[i].tbc===v)?null:v; markDirty(tab); const y=window.scrollY; render(); window.scrollTo(0,y); return}
+  if(t.id==="fSignAdd"){photoTarget={form:true};$("#fileIn").click();return}
+  if(t.id==="fSignRm"){const keep={};["f_school","f_code","f_region","f_zone","f_contract","f_stage","f_date","f_assessor","f_tbc","f_notes"].forEach(id=>{const el=$("#"+id); if(el) keep[id]=el.value}); if(pendingSign) URL.revokeObjectURL(pendingSign.url); pendingSign=null; render(); Object.entries(keep).forEach(([id,v])=>{const el=$("#"+id); if(el) el.value=v}); return}
   if(t.id==="signAdd"){photoTarget={sign:true,aid:cur};$("#fileIn").click();return}
   if(t.id==="signRm"){const old=curDoc.signPhoto;try{await saveSign(null);setSave("saved","All changes saved to cloud");renderKeepFocus();await sb.storage.from(BUCKET).remove([old])}catch(e){setSave("error","Could not remove the photo")}return}
   if(t.dataset.addph!=null){photoTarget={k:tab,i:+t.dataset.addph,aid:cur};$("#fileIn").click();return}
@@ -749,6 +757,11 @@ document.addEventListener("submit",async e=>{
     if(curEdit&&curEdit.id&&curEdit.signPhoto) info.signPhoto=curEdit.signPhoto;
     if(curEdit&&curEdit.id){ await sbDo(sb.from("assessments").update({info,updated_at:new Date().toISOString()}).eq("id",curEdit.id)); Object.assign(curDoc,info); setSave("saved","All changes saved to cloud"); view="work"; render() }
     else { const row=await sbDo(sb.from("assessments").insert({info,summary:{overall:null,pillars:{},answered:0}}).select("id").single());
+      if(pendingSign){ setSave("saving","Uploading school sign photo");
+        try{ const ext=(pendingSign.blob.type||"image/jpeg").split("/")[1].replace("jpeg","jpg"); const path=`${row.id}/sign_${Date.now()}.${ext}`;
+          await sbDo(sb.storage.from(BUCKET).upload(path,pendingSign.blob,{contentType:pendingSign.blob.type||"image/jpeg",upsert:false}));
+          info.signPhoto=path; await sbDo(sb.from("assessments").update({info}).eq("id",row.id)); photoUrl[path]=pendingSign.url;
+        }catch(e){ console.warn(e); setSave("error","Site saved, but the sign photo did not upload. Add it from the site page.") } pendingSign=null }
       setSave("saved","All changes saved to cloud"); openAssessment(row.id) }
   }catch(err){ $("#f_err").textContent="Could not save. Check your connection and try again."; $("#f_submit").disabled=false; setSave("error","Not saved") }
 });
