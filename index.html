@@ -191,6 +191,18 @@ textarea{resize:vertical;min-height:64px}
  @keyframes pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
  @keyframes rise{from{transform:translateY(8px);opacity:.35}to{transform:none;opacity:1}}
 }
+.acard .cimg{grid-column:1/-1;margin:-16px -16px 8px;height:120px;background:var(--surface) center/cover no-repeat;border-radius:var(--r) var(--r) 0 0}
+.acard.hasimg .big{grid-row:2/span 3}
+.signbox{margin:0 0 16px}
+.signimg{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.signimg img{width:100%;max-height:240px;object-fit:cover;display:block}
+.signimg .acts{position:absolute;right:10px;bottom:10px;display:flex;gap:8px}
+.signimg .acts button{background:rgba(0,0,0,.7);color:#fff;border:0;padding:6px 10px;font-size:12px;font-weight:600}
+.signimg .lbl{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 8px;border-radius:3px}
+.signadd{width:100%;border:1px dashed var(--ink-2);background:var(--card);color:var(--ink);padding:18px;display:flex;gap:14px;align-items:center;text-align:left}
+.signadd:hover{border-color:var(--red)}
+.signadd .ico{width:30px;height:30px;color:var(--red)}
+.signadd small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 </style>
 
 </head>
@@ -371,6 +383,20 @@ function banner(){
   if(!canWrite) return `<div class="banner">You can view assessments but not edit them. Ask your Kafaa administrator for edit access.</div>`;
   return "";
 }
+function signBox(a){
+  const camIcon='<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M12 13m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0"/></svg></span>';
+  if(a.signPhoto){ const u=photoUrl[a.signPhoto];
+    return `<div class="signbox"><div class="signimg">${u?`<img src="${esc(u)}" alt="School sign of ${esc(a.school)}">`:`<div class="busy" style="height:140px;display:grid;place-items:center">Loading photo</div>`}<span class="lbl">School sign · report cover</span>${canWrite?`<div class="acts"><button id="signAdd">Replace</button><button id="signRm">Remove</button></div>`:""}</div></div>`}
+  if(!canWrite) return "";
+  if((uploading.sign||0)>0) return `<div class="signbox"><div class="signadd">${camIcon}<div><b>Uploading school sign photo...</b></div></div></div>`;
+  return `<div class="signbox"><button class="signadd" id="signAdd">${camIcon}<div><b>Add a photo of the school sign</b><small>Shown on this page, on the site card and on the PDF report cover</small></div></button></div>`;
+}
+const infoOf=d=>{const {id,summary,updatedAt,...rest}=d;return rest};
+async function saveSign(path){
+  const info=infoOf(curDoc); if(path) info.signPhoto=path; else delete info.signPhoto;
+  await sbDo(sb.from("assessments").update({info,updated_at:new Date().toISOString()}).eq("id",curDoc.id));
+  if(path) curDoc.signPhoto=path; else delete curDoc.signPhoto;
+}
 function portfolioStrip(){
   const scored=list.filter(a=>a.summary&&a.summary.overall!=null);
   const avg=scored.length?scored.reduce((s,a)=>s+a.summary.overall,0)/scored.length:null;
@@ -391,7 +417,7 @@ function listView(){
   if(!list.length) return h+`<div class="empty"><h2>No site assessments yet</h2><p class="muted">Start with the school you are visiting. Enter its details, then score each pillar, add notes and take photos as evidence. The radar and overall score build up as you go.</p>${db&&canWrite?'<button class="btn" id="newBtn2">Start the first assessment</button>':""}</div>`;
   h+=portfolioStrip();
   h+=`<div class="cards">`+list.map(a=>{const s=a.summary||{};const o=s.overall;const pct=Math.round(100*(s.answered||0)/TOTALQ);
-    return `<button class="acard" data-open="${esc(a.id)}"><h3>${esc(a.school||"Unnamed site")}</h3>
+    return `<button class="acard ${a.signPhoto&&photoUrl[a.signPhoto]?"hasimg":""}" data-open="${esc(a.id)}">${a.signPhoto&&photoUrl[a.signPhoto]?`<div class="cimg" style="background-image:url('${esc(photoUrl[a.signPhoto])}')"></div>`:""}<h3>${esc(a.school||"Unnamed site")}</h3>
      <div class="meta">${esc([a.region,a.zone,a.contract].filter(Boolean).join(" · "))}</div>
      <div class="meta">${esc(a.visitDate||"")} ${a.assessorName?"· "+esc(a.assessorName):""}</div>
      <div class="big"><div class="score ${o==null?"na":""}">${fmt(o)}</div><div class="muted" style="font-size:12px">${esc(band(o))}</div></div>
@@ -428,6 +454,7 @@ function workView(){
   <div class="whead"><div class="info"><div class="eyebrow">Site assessment</div><h1>${esc(a.school)}</h1>
    <div class="tags">${[a.code,a.region,a.zone,a.contract,a.stage,a.visitDate,a.assessorName&&("Assessor: "+a.assessorName),a.tbcRep&&("TBC: "+a.tbcRep)].filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small pdf" id="pdfBtn"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span>Download PDF report</button><button class="btn ghost small" id="editSite" ${canWrite?"":"disabled"}>Edit details</button><button class="btn ghost small" id="delSite" ${canWrite?"":"disabled"}>Delete</button></div></div>
+  ${signBox(a)}
   <section class="summary">
    <div class="radarbox ${animNext?"anim":""}">${radar()}<div class="legend"><span><i class="sw"></i>Kafaa validated score</span><span><i class="sw t"></i>TBC self-score</span></div></div>
    <div class="panel"><div class="eyebrow">Overall maturity</div>
@@ -491,7 +518,10 @@ async function flushPending(){
 const rowToDoc=r=>({id:r.id,...(r.info||{}),summary:r.summary||{},updatedAt:r.updated_at});
 async function loadList(){
   try{ const rows=await sbDo(sb.from("assessments").select("id,info,summary,updated_at").order("updated_at",{ascending:false}));
-    list=rows.map(rowToDoc); listLoaded=true; if(view==="list") render(); }catch(e){ setSave("error","Could not load assessments") }
+    list=rows.map(rowToDoc); listLoaded=true; if(view==="list") render();
+    const sp=list.map(a=>a.signPhoto).filter(x=>x&&!photoUrl[x]);
+    if(sp.length){ try{ const r=await sbDo(sb.storage.from(BUCKET).createSignedUrls(sp,60*60*12)); r.forEach(x=>{ if(x.signedUrl) photoUrl[x.path]=x.signedUrl }); if(view==="list") render() }catch(e){} }
+  }catch(e){ setSave("error","Could not load assessments") }
 }
 async function openAssessment(id){
   cur=id; curDoc=null; answers={}; tab="AC"; view="work";
@@ -518,7 +548,7 @@ function softRefresh(){
 }
 const photoUrl={};
 async function refreshPhotoUrls(){
-  const paths=[]; Object.values(answers).forEach(a=>Object.values((a&&a.items)||{}).forEach(it=>(it.photos||[]).forEach(p=>{if(!photoUrl[p]) paths.push(p)})));
+  const paths=[]; if(curDoc&&curDoc.signPhoto&&!photoUrl[curDoc.signPhoto]) paths.push(curDoc.signPhoto); Object.values(answers).forEach(a=>Object.values((a&&a.items)||{}).forEach(it=>(it.photos||[]).forEach(p=>{if(!photoUrl[p]) paths.push(p)})));
   if(!paths.length) return;
   try{ const r=await sbDo(sb.storage.from(BUCKET).createSignedUrls(paths,60*60*12)); r.forEach(x=>{ if(x.signedUrl) photoUrl[x.path]=x.signedUrl }); renderKeepFocus() }catch(e){}
 }
@@ -536,6 +566,15 @@ async function compress(file){
 let photoTarget=null;
 $("#fileIn").addEventListener("change",async ev=>{
   const files=[...ev.target.files]; ev.target.value=""; if(!photoTarget||!sb) return;
+  if(photoTarget.sign){ const aid=photoTarget.aid; const f=files[0]; if(!f) return; const old=curDoc&&curDoc.signPhoto;
+    uploading.sign=1; renderKeepFocus(); setSave("saving","Uploading school sign photo");
+    try{ const blob=await compress(f); const ext=(blob.type||"image/jpeg").split("/")[1].replace("jpeg","jpg");
+      const path=`${aid}/sign_${Date.now()}.${ext}`;
+      await sbDo(sb.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||"image/jpeg",upsert:false}));
+      photoUrl[path]=URL.createObjectURL(blob);
+      if(cur===aid&&curDoc){ await saveSign(path); setSave("saved","All changes saved to cloud"); if(old){ try{await sb.storage.from(BUCKET).remove([old])}catch(_){} } }
+    }catch(e){ console.warn(e); setSave("error","Photo could not be uploaded. Use JPEG or PNG and check your connection.") }
+    uploading.sign=0; renderKeepFocus(); return }
   const {k,i,aid}=photoTarget; const key=k+"_"+i;
   for(const f of files){
     uploading[key]=(uploading[key]||0)+1; renderKeepFocus(); setSave("saving","Uploading photo");
@@ -557,6 +596,13 @@ async function toDataURL(url,max){
     const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);
     return {d:c.toDataURL("image/jpeg",.8),w:c.width,h:c.height}}catch(e){return null}
 }
+async function cropData(url,ratio){
+  try{const r=await fetch(url);const b=await r.blob();const bmp=await createImageBitmap(b);
+    let sw=bmp.width,sh=Math.round(bmp.width/ratio); if(sh>bmp.height){sh=bmp.height;sw=Math.round(sh*ratio)}
+    const sx=Math.round((bmp.width-sw)/2),sy=Math.round((bmp.height-sh)/2); const ow=Math.min(1600,sw),oh=Math.round(ow/ratio);
+    const c=document.createElement("canvas");c.width=ow;c.height=oh;c.getContext("2d").drawImage(bmp,sx,sy,sw,sh,0,0,ow,oh);
+    return c.toDataURL("image/jpeg",.85)}catch(e){return null}
+}
 async function makePDF(btn){
   if(!curDoc) return; btn.disabled=true; const old=btn.innerHTML; btn.innerHTML="Preparing report...";
   try{
@@ -577,9 +623,12 @@ async function makePDF(btn){
     doc.setFillColor(20,20,20);doc.rect(0,0,W,H,"F");
     doc.setFillColor(...RED);doc.triangle(W,H*0.55,W,H,W*0.55,H,"F");
     if(logo){doc.setFillColor(255,255,255);doc.rect(M,M,46,19,"F");try{doc.addImage(logo,"PNG",M+2,M+1.5,42,16)}catch(e){}}
-    T("iFM FIELD ASSESSMENT REPORT",M,92,{b:1,s:10,c:RED});
-    const nm=wrap(a.school||"Site",CW,26);doc.setFont("helvetica","bold");doc.setFontSize(26);doc.setTextColor(255,255,255);doc.text(nm,M,104);
-    let cy=104+nm.length*10+4;
+    let ty=92;
+    if(a.signPhoto&&photoUrl[a.signPhoto]){ const im=await cropData(photoUrl[a.signPhoto],CW/78);
+      if(im){ try{doc.addImage(im,"JPEG",M,44,CW,78)}catch(e){} doc.setFillColor(...RED);doc.rect(M,122,CW,1.6,"F"); ty=138 } }
+    T("iFM FIELD ASSESSMENT REPORT",M,ty,{b:1,s:10,c:RED});
+    const nm=wrap(a.school||"Site",CW,26);doc.setFont("helvetica","bold");doc.setFontSize(26);doc.setTextColor(255,255,255);doc.text(nm,M,ty+12);
+    let cy=ty+12+nm.length*10+4;
     const rows=[["Site code",a.code],["Region / zone",[a.region,a.zone].filter(Boolean).join(" / ")],["iFM contract",a.contract],["School stage",a.stage],["Visit date",a.visitDate],["Kafaa assessor",a.assessorName],["TBC representative",a.tbcRep]].filter(r=>r[1]);
     rows.forEach(r=>{T(r[0],M,cy,{s:9,c:[170,170,170]});T(r[1],M+42,cy,{s:10,c:[255,255,255]});cy+=7});
     T(fmt(o),M,cy+26,{b:1,s:44,c:RED});T("Overall maturity, out of 6",M+40,cy+16,{s:9,c:[170,170,170]});T(band(o),M+40,cy+24,{b:1,s:14,c:[255,255,255]});
@@ -672,6 +721,8 @@ document.addEventListener("click",async e=>{
     const y=window.scrollY; render(); window.scrollTo(0,y); return}
   if(t.dataset.tbc&&canWrite){const i=+t.dataset.q;const A=itemsFor(tab);A.items[i]=A.items[i]||{};
     const v=+t.dataset.tbc; A.items[i].tbc=(A.items[i].tbc===v)?null:v; markDirty(tab); const y=window.scrollY; render(); window.scrollTo(0,y); return}
+  if(t.id==="signAdd"){photoTarget={sign:true,aid:cur};$("#fileIn").click();return}
+  if(t.id==="signRm"){const old=curDoc.signPhoto;try{await saveSign(null);setSave("saved","All changes saved to cloud");renderKeepFocus();await sb.storage.from(BUCKET).remove([old])}catch(e){setSave("error","Could not remove the photo")}return}
   if(t.dataset.addph!=null){photoTarget={k:tab,i:+t.dataset.addph,aid:cur};$("#fileIn").click();return}
   if(t.dataset.rmph){const i=+t.dataset.q, id=t.dataset.rmph;const A=itemsFor(tab);
     A.items[i].photos=(A.items[i].photos||[]).filter(x=>x!==id); markDirty(tab); renderKeepFocus();
@@ -695,6 +746,7 @@ document.addEventListener("submit",async e=>{
   if(!info.school){$("#f_err").textContent="Enter the school name.";return}
   $("#f_submit").disabled=true; setSave("saving","Saving site");
   try{
+    if(curEdit&&curEdit.id&&curEdit.signPhoto) info.signPhoto=curEdit.signPhoto;
     if(curEdit&&curEdit.id){ await sbDo(sb.from("assessments").update({info,updated_at:new Date().toISOString()}).eq("id",curEdit.id)); Object.assign(curDoc,info); setSave("saved","All changes saved to cloud"); view="work"; render() }
     else { const row=await sbDo(sb.from("assessments").insert({info,summary:{overall:null,pillars:{},answered:0}}).select("id").single());
       setSave("saved","All changes saved to cloud"); openAssessment(row.id) }
