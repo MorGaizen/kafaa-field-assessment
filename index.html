@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#141414">
+<title>Kafaa iFM Field Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: black brand bar, assessment list, then a two-zone workspace: score summary (radar + pillar bars) above a pillar-by-pillar question sheet */
+:root{
+  --red:#D82435; --red-ink:#B81D2C; --red-soft:#FBE5E7;
+  --ink:#1F1F1F; --ink-2:#3F3F3F; --muted:#6E6E6E; --line:#DCDCDC; --surface:#F4F4F4; --card:#FFFFFF; --bg:#FFFFFF;
+  --bar:#141414; --bar-fg:#FFFFFF;
+  --ok:#1E8A4C; --warn:#C77700;
+  --display:"Nexa Bold","Nexa","Montserrat",system-ui,sans-serif;
+  --body:"Nexa","Montserrat",system-ui,sans-serif;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --red:#E8424F; --red-ink:#FF6B76; --red-soft:#3A1A1D;
+  --ink:#F2F2F2; --ink-2:#D0D0D0; --muted:#9A9A9A; --line:#333333; --surface:#1C1C1C; --card:#161616; --bg:#0F0F0F;
+  --bar:#000000; --bar-fg:#FFFFFF; --ok:#3DBA72; --warn:#E89B2B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --red:#E8424F; --red-ink:#FF6B76; --red-soft:#3A1A1D;
+  --ink:#F2F2F2; --ink-2:#D0D0D0; --muted:#9A9A9A; --line:#333333; --surface:#1C1C1C; --card:#161616; --bg:#0F0F0F;
+  --bar:#000000; --bar-fg:#FFFFFF; --ok:#3DBA72; --warn:#E89B2B; color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);color:var(--bar-fg)}
+header.top .wrap{display:flex;align-items:center;gap:14px;padding-block:10px;min-height:58px}
+.logo{height:30px;width:auto;background:#fff;border-radius:3px;padding:3px 6px}
+.apptitle{font-family:var(--display);font-weight:700;letter-spacing:.02em;font-size:15px;line-height:1.2;min-width:0}
+.apptitle small{display:block;font-family:var(--body);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#BDBDBD}
+.save{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap;color:#D6D6D6}
+.dot{width:8px;height:8px;border-radius:50%;background:#7a7a7a;flex:none}
+.save[data-s="saved"] .dot{background:#3DBA72}.save[data-s="saving"] .dot{background:#E89B2B}.save[data-s="error"] .dot{background:#FF5A66}
+main{padding-block:20px 60px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(22px,4vw,30px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:18px;font-weight:700}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);font-weight:700}
+.muted{color:var(--muted)}
+button{font-family:inherit;font-size:14px;cursor:pointer;border-radius:var(--r)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.btn{background:var(--red);color:#fff;border:0;padding:10px 16px;font-weight:700}
+.btn:hover{background:var(--red-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600}
+.btn.ghost:hover{border-color:var(--ink-2)}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.banner{border:1px solid var(--line);background:var(--surface);padding:12px 14px;border-radius:var(--r);margin-bottom:16px;font-size:14px}
+.banner.err{border-color:var(--red);background:var(--red-soft)}
+/* list */
+.listhead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.acard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;text-align:left;color:var(--ink);width:100%}
+.acard:hover{border-color:var(--ink-2)}
+.acard h3{font-size:16px;font-weight:700;grid-column:1}
+.acard .meta{grid-column:1;font-size:13px;color:var(--muted)}
+.acard .big{grid-column:2;grid-row:1/span 3;align-self:center;text-align:right}
+.score{font-family:var(--display);font-weight:800;font-size:32px;line-height:1;font-variant-numeric:tabular-nums;color:var(--red)}
+.score.na{color:var(--muted)}
+.prog{grid-column:1/-1;height:4px;background:var(--surface);border-radius:2px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--ink)}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:32px 20px;text-align:center}
+.empty p{max-width:52ch;margin:8px auto 16px}
+/* form */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px;margin-top:14px}
+label.f{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:9px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+.formactions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+/* workspace */
+.back{background:none;border:0;color:var(--muted);padding:0;font-weight:600;margin-bottom:10px}
+.back:hover{color:var(--ink)}
+.whead{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.whead .info{min-width:0}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--ink-2);background:var(--card)}
+.summary{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:stretch}
+@media (max-width:760px){.summary{grid-template-columns:minmax(0,1fr)}}
+.radarbox{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+.radarbox svg{width:100%;height:auto;display:block}
+.overall{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.overall .score{font-size:56px}
+.band{font-family:var(--display);font-weight:700;font-size:15px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;background:var(--red);display:inline-block}
+.sw.t{background:none;border-top:2px dashed var(--muted);height:0}
+.bars{display:grid;gap:8px;margin-top:14px}
+.barrow{display:grid;grid-template-columns:minmax(0,1fr) 120px 44px;gap:10px;align-items:center;font-size:13px;background:none;border:0;padding:4px 0;color:var(--ink);text-align:left}
+.barrow:hover .bn{color:var(--red)}
+.barrow .bn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{height:8px;background:var(--surface);border-radius:4px;position:relative;overflow:hidden}
+.track i{position:absolute;inset:0 auto 0 0;background:var(--red);border-radius:4px}
+.barrow b{font-variant-numeric:tabular-nums;text-align:right}
+.flagnote{margin-top:12px;font-size:13px;color:var(--warn);font-weight:600}
+/* pillar tabs */
+.ptabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;margin-top:22px;scrollbar-width:thin}
+.ptab{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;text-align:left;min-width:132px}
+.ptab .n{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.08em}
+.ptab .t{display:block;font-weight:700;font-size:13px;line-height:1.25;margin-top:2px}
+.ptab .s{display:block;font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.ptab[aria-selected="true"]{background:var(--bar);color:#fff;border-color:var(--bar)}
+.ptab[aria-selected="true"] .n,.ptab[aria-selected="true"] .s{color:#C9C9C9}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-end;margin:10px 0 12px}
+.phead p{margin:4px 0 0;max-width:70ch;font-size:14px;color:var(--ink-2)}
+.qlist{display:grid;gap:12px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.q.flag{border-color:var(--warn)}
+.qtop{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.qn{font-family:var(--display);font-weight:800;color:var(--red);font-size:14px;min-width:30px;font-variant-numeric:tabular-nums}
+.qt{font-weight:600}
+.src{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:1px}
+.scale{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 2px;display:grid;justify-items:center;line-height:1.15}
+.chip b{font-size:16px;font-family:var(--display)}
+.chip span{font-size:10px;color:var(--muted);letter-spacing:.02em}
+.chip[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.chip[aria-pressed="true"] span{color:#FFE3E5}
+.chip.na[aria-pressed="true"]{background:var(--ink-2);border-color:var(--ink-2)}
+.chip:disabled{cursor:not-allowed;opacity:.6}
+.self{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.self .mini{border:1px solid var(--line);background:var(--bg);color:var(--ink-2);width:30px;height:28px;padding:0;font-size:12px;font-weight:700}
+.self .mini[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.evid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.photos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ph{position:relative;width:84px;height:84px;border-radius:4px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;max-width:none}
+.ph button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:24px;padding:0}
+.ph .busy{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;color:var(--muted)}
+.addph{width:84px;height:84px;border:1px dashed var(--ink-2);background:transparent;color:var(--ink-2);font-size:12px;font-weight:600;display:grid;place-items:center;text-align:center;padding:4px}
+.addph:hover{border-color:var(--red);color:var(--red)}
+.evflag{font-size:12px;font-weight:700;color:var(--warn)}
+.pnote{margin-top:14px}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:20;padding:16px}
+.dlg .panel{max-width:420px;width:100%}
+.viewer{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:30;display:grid;place-items:center;padding:16px}
+.viewer img{max-height:88vh;max-width:100%;border-radius:4px}
+.viewer button{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px))}
+.foot{margin-top:28px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.rubric{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-top:10px;font-size:12px}
+.rubric div{background:var(--surface);border-radius:4px;padding:6px 8px}
+.rubric b{color:var(--red)}
+@media (max-width:560px){.apptitle small{display:none}.apptitle{font-size:14px}.logo{height:26px}#savetxt{max-width:96px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle}header.top .wrap{gap:10px}}
+@media (prefers-reduced-motion:no-preference){.track i,.prog i{transition:width .35s ease}}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <img class="logo" alt="Kafaa" src="data:image/png;base64,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">
+  <div class="apptitle">iFM Field Assessment<small>8-pillar maturity, TBC schools</small></div>
+  <div class="save" id="save" data-s="idle" aria-live="polite"><span class="dot"></span><span id="savetxt">Connecting</span></div><button class="btn ghost small" id="signOut" style="color:#fff;border-color:#555">Sign out</button>
+</div></header>
+
+<main class="wrap" id="app">
+  <div class="empty"><p class="muted">Loading assessments from the cloud...</p></div>
+</main>
+
+<input type="file" id="fileIn" accept="image/*" capture="environment" multiple hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ===== PASTE YOUR SUPABASE SETTINGS HERE (Project Settings > API) ===== */
+const SUPABASE_URL = "https://tkfgtmxqycqbslyolerd.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrZmd0bXhxeWNxYnNseW9sZXJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNzgxMTksImV4cCI6MjEwODc1NDExOX0.AHSk0hVXv0-gVKfrT0BVxtd_0GKnuyddOXUJvMIBrR8";
+const BUCKET = "evidence";
+/* ======================================================================= */
+let sb=null, session=null;
+const PILLARS = [
+ {k:"AC",t:"Assets Classification",d:"The site's assets are registered, classified by criticality, tagged and tracked across their lifecycle.",q:[
+  ["A complete, current asset register covers this school's buildings and installed systems.","D"],
+  ["Assets are classified by criticality (critical, major, minor).","D"],
+  ["Locations follow the NMAFM hierarchy (site, building, floor, room) and assets are linked to them.","D"],
+  ["Physical tags or QR codes are fixed on assets and match the register.","F"],
+  ["Condition assessments are carried out on a defined cycle and recorded.","D"],
+  ["Lifecycle data (install date, expected life, replacement value) is recorded for major assets.","D"],
+  ["As-built drawings for the site are available and up to date.","D"]]},
+ {k:"MS",t:"Maintenance Scheduling",d:"Preventive and corrective maintenance is planned, prioritized and delivered on time.",q:[
+  ["A PPM schedule exists and covers all critical assets on this site.","D"],
+  ["Records on site (checklists, service tags) confirm PPM visits were done as scheduled.","F"],
+  ["Corrective work orders are prioritized by criticality and response priority (P1 to P4).","D"],
+  ["Response and rectification times meet the contract SLA.","D"],
+  ["Recurring failures are analyzed for root cause and fixed permanently.","I"],
+  ["Spare parts and consumables are available to support timely repairs.","F"],
+  ["PM to CM ratio and schedule compliance are tracked monthly.","D"]]},
+ {k:"CB",t:"Contracting & Budget Planning",d:"Contracts, SLAs, pricing and budgets drive cost-efficient, high-quality delivery.",q:[
+  ["The scope for this site is clear: services, frequencies and building list.","D"],
+  ["KPIs and SLAs are defined and linked to deductions and incentives.","D"],
+  ["Contractor performance is evaluated on a regular, documented cycle.","D"],
+  ["Monthly invoices are verified against completed work orders.","D"],
+  ["Change orders follow a documented review and approval process.","D"],
+  ["Repair pricing is checked against a unit-cost or reference price list.","D"],
+  ["Budgets consider asset lifecycle and planned replacements (CapEx).","I"]]},
+ {k:"DI",t:"Digital Infrastructure",d:"Systems and data give TBC a reliable, transparent view of operations.",q:[
+  ["A CAFM or CMMS is used in production for work orders at this site.","F"],
+  ["Technicians receive and close work orders on mobile devices with photo evidence.","F"],
+  ["School staff can raise and track requests through the app or control center.","I"],
+  ["Asset, work order and PPM data are stored centrally and TBC has direct access.","D"],
+  ["Data ownership and data return at contract exit are defined in the contract.","D"],
+  ["Smart monitoring or BMS alerts cover critical systems (HVAC, fire pumps, water tanks).","F"],
+  ["Reports and dashboards come from system data, not manual spreadsheets.","D"]]},
+ {k:"EM",t:"Energy Management",d:"Consumption is visible, benchmarked and actively reduced.",q:[
+  ["Electricity and water consumption for the site is visible to TBC or the contractor.","D"],
+  ["Consumption is reviewed against benchmarks or targets.","D"],
+  ["Sub-metering exists for major loads (HVAC, pumps).","F"],
+  ["HVAC set points and operating schedules match school hours.","F"],
+  ["Lighting and equipment are switched off outside occupied hours.","F"],
+  ["Leaks, faulty meters and abnormal consumption are reported and fixed.","F"],
+  ["Energy-saving opportunities are identified and tracked.","I"]]},
+ {k:"FO",t:"Foundational Operating Practices",d:"The basics of the operating model are in place and applied on the ground.",q:[
+  ["The approved building and asset list for the site matches what is on the ground.","F"],
+  ["Standard operating procedures exist for core services and are applied on site.","D"],
+  ["Roles between TBC, the contractor and the school administration are clear.","I"],
+  ["The contractor's site team is mobilized at the contracted size and skills.","F"],
+  ["Logbooks, permits to work and inspection records are kept up to date.","F"],
+  ["Access and handover arrangements with the school administration work smoothly.","I"],
+  ["Site cleanliness and housekeeping meet the contracted standard.","F"]]},
+ {k:"GC",t:"Governance & Compliance",d:"Life safety, statutory and NMAFM requirements are met and verified.",q:[
+  ["Fire alarm, firefighting and life-safety systems are inspected and tagged per Civil Defense requirements.","F"],
+  ["Evacuation plans are posted and current, and drills are recorded.","F"],
+  ["HSE practices on site follow the contractor's safety plan (PPE, permits, chemicals).","F"],
+  ["Compliance with the National Manual of Assets and Facilities Management is tracked.","D"],
+  ["Statutory certificates (elevators, pressure vessels, generators) are valid.","D"],
+  ["Incidents and near misses are logged and investigated.","D"],
+  ["Audit findings are closed within agreed timeframes.","D"]]},
+ {k:"BE",t:"Beneficiary Experience",d:"School leaders, teachers and students experience safe, comfortable, well-kept facilities.",q:[
+  ["School leadership is satisfied with service quality and responsiveness.","I"],
+  ["Teachers and staff can report issues easily and receive feedback.","I"],
+  ["Classrooms are comfortable: cooling, lighting and furniture.","F"],
+  ["Restrooms and water facilities are clean and functional.","F"],
+  ["Labs, libraries and shared spaces are usable.","F"],
+  ["Complaints are tracked and closed, with the school informed.","D"],
+  ["Satisfaction is measured periodically and acted upon.","D"]]}
+];
+const LEVELS=["Absent","Initial","Developing","Defined","Managed","Optimized"];
+const SRC={D:"DOC",F:"FIELD",I:"INTERVIEW"};
+const REGIONS=["Central","Eastern","Western","Northern","Southern"];
+const STAGES=["Kindergarten","Primary","Intermediate","Secondary","Complex (multi-stage)"];
+
+let db=null, assets=null, user=null, uid=null, canWrite=true;
+let list=[], listLoaded=false, cur=null, curDoc=null, answers={}, tab="AC", view="list", unsubs=[];
+const dirty={}; const timers={}; let inflight=0, lastErr=null;
+const PKEY="kafaa-fa-pending";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function setSave(s,t){const el=$("#save");el.dataset.s=s;$("#savetxt").textContent=t}
+function loadPending(){try{return JSON.parse(localStorage.getItem(PKEY)||"{}")}catch(e){return{}}}
+function savePending(p){try{localStorage.setItem(PKEY,JSON.stringify(p))}catch(e){}}
+
+/* ---------- scoring ---------- */
+function pillarScore(k,src){
+  const a=(src||answers)[k]; if(!a||!a.items) return {kafaa:null,tbc:null,done:0,flags:0};
+  let s=0,n=0,ts=0,tn=0,done=0,flags=0;
+  const P=PILLARS.find(p=>p.k===k);
+  P.q.forEach((_,i)=>{const it=a.items[i]; if(!it) return;
+    if(it.score==="NA"){done++;}
+    else if(typeof it.score==="number"){s+=it.score;n++;done++;
+      if(it.score>3 && !(it.photos&&it.photos.length) && !(it.note&&it.note.trim())) flags++;}
+    if(typeof it.tbc==="number"){ts+=it.tbc;tn++}
+  });
+  return {kafaa:n?s/n:null,tbc:tn?ts/tn:null,done,flags};
+}
+function overall(src){
+  const v=PILLARS.map(p=>pillarScore(p.k,src).kafaa).filter(x=>x!=null);
+  return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
+}
+const band=x=>x==null?"Not scored":LEVELS[Math.min(5,Math.max(0,Math.round(x)-1))];
+const fmt=x=>x==null?"-":x.toFixed(2);
+const TOTALQ=PILLARS.reduce((a,p)=>a+p.q.length,0);
+
+/* ---------- radar ---------- */
+function radar(){
+  const W=420,H=380,cx=W/2,cy=H/2+4,R=128,N=PILLARS.length;
+  const pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/N;return [cx+Math.cos(a)*R*v/6, cy+Math.sin(a)*R*v/6]};
+  let g="";
+  for(let r=1;r<=6;r++){const pts=PILLARS.map((_,i)=>pt(i,r).join(",")).join(" ");
+    g+=`<polygon points="${pts}" fill="none" stroke="var(--line)" stroke-width="${r===6?1.4:1}"/>`;
+    g+=`<text x="${cx+3}" y="${cy-R*r/6+3}" font-size="9" fill="var(--muted)">${r}</text>`}
+  PILLARS.forEach((p,i)=>{const [x,y]=pt(i,6);g+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
+    const [lx,ly]=pt(i,7.35);const anc=Math.abs(lx-cx)<8?"middle":(lx>cx?"start":"end");
+    const words=p.t.replace("&","and").split(" ");let lines=[],l="";words.forEach(w=>{if((l+" "+w).trim().length>14){lines.push(l.trim());l=w}else l+=" "+w});lines.push(l.trim());
+    const sc=pillarScore(p.k).kafaa;
+    g+=`<text x="${lx}" y="${ly-(lines.length-1)*6}" text-anchor="${anc}" font-size="10.5" font-weight="600" fill="var(--ink-2)">${lines.map((t,j)=>`<tspan x="${lx}" dy="${j?12:0}">${esc(t)}</tspan>`).join("")}<tspan x="${lx}" dy="13" font-weight="800" fill="var(--red)">${fmt(sc)}</tspan></text>`});
+  const poly=key=>{const vals=PILLARS.map(p=>pillarScore(p.k)[key]);if(vals.every(v=>v==null))return"";
+    return PILLARS.map((p,i)=>pt(i,vals[i]??0).join(",")).join(" ")};
+  const t=poly("tbc"),k=poly("kafaa");
+  if(t) g+=`<polygon points="${t}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  if(k){g+=`<polygon points="${k}" fill="var(--red)" fill-opacity=".16" stroke="var(--red)" stroke-width="2.2"/>`;
+    PILLARS.forEach((p,i)=>{const v=pillarScore(p.k).kafaa;if(v!=null){const [x,y]=pt(i,v);g+=`<circle cx="${x}" cy="${y}" r="3.5" fill="var(--red)"/>`}})}
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Radar chart of the eight pillar scores">${g}</svg>`;
+}
+
+/* ---------- views ---------- */
+function render(){
+  const app=$("#app");
+  if(view==="list") app.innerHTML=listView();
+  else if(view==="new") app.innerHTML=newView();
+  else app.innerHTML=workView();
+}
+function banner(){
+  if(!sb) return `<div class="banner err"><b>Not connected.</b> Check your internet connection and reload.</div>`;
+  if(!canWrite) return `<div class="banner">You can view assessments but not edit them. Ask your Kafaa administrator for edit access.</div>`;
+  return "";
+}
+function listView(){
+  let h=`${banner()}<div class="listhead"><div><div class="eyebrow">Tatweer Buildings Company</div><h1>Field assessments</h1>
+   <p class="muted" style="margin:4px 0 0">${TOTALQ} statements across 8 pillars, scored 1 to 6 with photo and note evidence. Everything saves to the cloud as you go.</p></div>
+   <button class="btn" id="newBtn" ${(!db||!canWrite)?"disabled":""}>New site assessment</button></div>`;
+  if(!listLoaded&&db) return h+`<div class="empty"><p class="muted">Loading assessments...</p></div>`;
+  if(!list.length) return h+`<div class="empty"><h2>No site assessments yet</h2><p class="muted">Start with the school you are visiting. Enter its details, then score each pillar, add notes and take photos as evidence. The radar and overall score build up as you go.</p>${db&&canWrite?'<button class="btn" id="newBtn2">Start the first assessment</button>':""}</div>`;
+  h+=`<div class="cards">`+list.map(a=>{const s=a.summary||{};const o=s.overall;const pct=Math.round(100*(s.answered||0)/TOTALQ);
+    return `<button class="acard" data-open="${esc(a.id)}"><h3>${esc(a.school||"Unnamed site")}</h3>
+     <div class="meta">${esc([a.region,a.zone,a.contract].filter(Boolean).join(" · "))}</div>
+     <div class="meta">${esc(a.visitDate||"")} ${a.assessorName?"· "+esc(a.assessorName):""}</div>
+     <div class="big"><div class="score ${o==null?"na":""}">${fmt(o)}</div><div class="muted" style="font-size:12px">${esc(band(o))}</div></div>
+     <div class="prog" title="${pct}% answered"><i style="width:${pct}%"></i></div></button>`}).join("")+`</div>`;
+  return h+foot();
+}
+function foot(){return `<div class="foot">Scale: <div class="rubric">${LEVELS.map((l,i)=>`<div><b>${i+1}</b> ${l}</div>`).join("")}</div><p style="margin:10px 0 0">Evidence rule: a Kafaa score above 3 needs a photo or a note. Source tags show where the evidence normally comes from: DOC (document review), FIELD (site observation), INTERVIEW.</p></div>`}
+function newView(){
+  const a=view==="new"&&curEdit?curEdit:{};
+  return `${banner()}<button class="back" id="backList">&larr; All assessments</button>
+  <div class="panel"><div class="eyebrow">${a.id?"Edit site details":"New site assessment"}</div><h1>${a.id?esc(a.school):"Which school are you assessing?"}</h1>
+  <form id="newForm"><div class="formgrid">
+   <label class="f">School name<input id="f_school" required value="${esc(a.school)}" placeholder="e.g. Prince AbdulMajeed Secondary School"></label>
+   <label class="f">Building or site code<input id="f_code" value="${esc(a.code)}"></label>
+   <label class="f">Region<select id="f_region">${REGIONS.map(r=>`<option ${a.region===r?"selected":""}>${r}</option>`).join("")}</select></label>
+   <label class="f">Zone<input id="f_zone" value="${esc(a.zone)}" placeholder="e.g. Riyadh Zone 3"></label>
+   <label class="f">iFM contract / contractor<input id="f_contract" value="${esc(a.contract)}" placeholder="e.g. Framework #120 - Shalfa"></label>
+   <label class="f">School stage<select id="f_stage">${STAGES.map(r=>`<option ${a.stage===r?"selected":""}>${r}</option>`).join("")}</select></label>
+   <label class="f">Visit date<input id="f_date" type="date" value="${esc(a.visitDate||new Date().toISOString().slice(0,10))}"></label>
+   <label class="f">Kafaa assessor<input id="f_assessor" value="${esc(a.assessorName||myName)}"></label>
+   <label class="f">TBC representative<input id="f_tbc" value="${esc(a.tbcRep)}"></label>
+  </div>
+  <label class="f" style="margin-top:12px">Visit notes<textarea id="f_notes">${esc(a.notes)}</textarea></label>
+  <div class="formactions"><button class="btn" type="submit" id="f_submit">${a.id?"Save details":"Create and start scoring"}</button><button class="btn ghost" type="button" id="cancelNew">Cancel</button></div>
+  <p id="f_err" class="muted" role="alert"></p></form></div>`;
+}
+let curEdit=null, myName="";
+function workView(){
+  if(!curDoc) return `${banner()}<button class="back" id="backList">&larr; All assessments</button><div class="empty"><p class="muted">Loading assessment...</p></div>`;
+  const a=curDoc, o=overall(); let flags=0, done=0;
+  PILLARS.forEach(p=>{const s=pillarScore(p.k);flags+=s.flags;done+=s.done});
+  const P=PILLARS.find(p=>p.k===tab), A=(answers[tab]&&answers[tab].items)||{};
+  let h=`${banner()}<button class="back" id="backList">&larr; All assessments</button>
+  <div class="whead"><div class="info"><div class="eyebrow">Site assessment</div><h1>${esc(a.school)}</h1>
+   <div class="tags">${[a.code,a.region,a.zone,a.contract,a.stage,a.visitDate,a.assessorName&&("Assessor: "+a.assessorName),a.tbcRep&&("TBC: "+a.tbcRep)].filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost small" id="editSite" ${canWrite?"":"disabled"}>Edit details</button><button class="btn ghost small" id="delSite" ${canWrite?"":"disabled"}>Delete</button></div></div>
+  <section class="summary">
+   <div class="radarbox">${radar()}<div class="legend"><span><i class="sw"></i>Kafaa validated score</span><span><i class="sw t"></i>TBC self-score</span></div></div>
+   <div class="panel"><div class="eyebrow">Overall maturity</div>
+    <div class="overall"><div class="score ${o==null?"na":""}">${fmt(o)}</div><div><div class="band">${esc(band(o))}</div><div class="muted" style="font-size:13px">out of 6 · ${done} of ${TOTALQ} statements answered</div></div></div>
+    <div class="bars">${PILLARS.map(p=>{const s=pillarScore(p.k);return `<button class="barrow" data-tab="${p.k}"><span class="bn">${esc(p.t)}</span><span class="track"><i style="width:${s.kafaa?s.kafaa/6*100:0}%"></i></span><b>${fmt(s.kafaa)}</b></button>`}).join("")}</div>
+    ${flags?`<div class="flagnote">${flags} score${flags>1?"s above 3 still need":" above 3 still needs"} a photo or note as evidence.</div>`:""}
+   </div></section>
+  <nav class="ptabs" role="tablist" aria-label="Pillars">${PILLARS.map((p,i)=>{const s=pillarScore(p.k);return `<button class="ptab" role="tab" aria-selected="${p.k===tab}" data-tab="${p.k}"><span class="n">PILLAR ${i+1}</span><span class="t">${esc(p.t)}</span><span class="s">${s.done}/${p.q.length} · ${fmt(s.kafaa)}</span></button>`}).join("")}</nav>
+  <div class="phead"><div><h2>${esc(P.t)}</h2><p>${esc(P.d)}</p></div><div class="muted" style="font-size:13px">Pillar score <b style="color:var(--red);font-size:18px">${fmt(pillarScore(tab).kafaa)}</b></div></div>
+  <div class="qlist">${P.q.map((q,i)=>qCard(P,q,i,A[i]||{})).join("")}</div>
+  <label class="f pnote">Pillar observations<textarea id="pnote" data-k="${tab}" placeholder="Overall comments for this pillar" ${canWrite?"":"disabled"}>${esc((answers[tab]&&answers[tab].note)||"")}</textarea></label>
+  <div style="display:flex;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap">
+   ${PILLARS.findIndex(p=>p.k===tab)>0?`<button class="btn ghost" data-tab="${PILLARS[PILLARS.findIndex(p=>p.k===tab)-1].k}">&larr; Previous pillar</button>`:"<span></span>"}
+   ${PILLARS.findIndex(p=>p.k===tab)<7?`<button class="btn" data-tab="${PILLARS[PILLARS.findIndex(p=>p.k===tab)+1].k}">Next pillar &rarr;</button>`:""}</div>`;
+  return h+foot();
+}
+function qCard(P,q,i,it){
+  const sc=it.score, flag=typeof sc==="number"&&sc>3&&!(it.photos&&it.photos.length)&&!(it.note&&it.note.trim());
+  const dis=canWrite?"":"disabled";
+  return `<div class="q ${flag?"flag":""}" id="q_${P.k}_${i}"><div class="qtop"><div class="qn">${P.k}${i+1}</div><div class="qt">${esc(q[0])}<span class="src">${SRC[q[1]]}</span></div></div>
+   <div class="scale" role="group" aria-label="Kafaa score">${LEVELS.map((l,j)=>`<button class="chip" ${dis} aria-pressed="${sc===j+1}" data-score="${j+1}" data-q="${i}"><b>${j+1}</b><span>${l}</span></button>`).join("")}<button class="chip na" ${dis} aria-pressed="${sc==="NA"}" data-score="NA" data-q="${i}"><b>N/A</b><span>Not applicable</span></button></div>
+   <div class="self">TBC self-score:${[1,2,3,4,5,6].map(n=>`<button class="mini" ${dis} aria-pressed="${it.tbc===n}" data-tbc="${n}" data-q="${i}">${n}</button>`).join("")}</div>
+   <div class="evid"><textarea class="qnote" data-q="${i}" placeholder="Evidence note: what you saw, document reference, who said it" ${dis}>${esc(it.note||"")}</textarea>
+    <div class="photos">${(it.photos||[]).map(id=>`<div class="ph">${photoUrl[id]?`<img src="${esc(photoUrl[id])}" alt="Evidence photo for ${P.k}${i+1}" loading="lazy" data-view="${esc(id)}">`:`<span class="busy">Loading</span>`}${canWrite?`<button aria-label="Remove photo" data-rmph="${esc(id)}" data-q="${i}">&times;</button>`:""}</div>`).join("")}
+     ${(uploading[P.k+"_"+i]||0)>0?`<div class="ph"><span class="busy">Uploading...</span></div>`:""}
+     ${canWrite?`<button class="addph" data-addph="${i}">+ Photo</button>`:""}
+     ${flag?`<span class="evflag">Add a photo or note to support this score</span>`:""}</div></div></div>`;
+}
+const uploading={};
+
+/* ---------- data (Supabase) ---------- */
+function itemsFor(k){ if(!answers[k]) answers[k]={items:{},note:""}; if(!answers[k].items) answers[k].items={}; return answers[k]; }
+function markDirty(k){
+  dirty[k]=true; const pend=loadPending(); pend[cur]=pend[cur]||{}; pend[cur][k]=answers[k]; savePending(pend);
+  setSave("saving","Saving"); clearTimeout(timers[k]); timers[k]=setTimeout(()=>flush(k),700);
+}
+async function sbDo(q){ const r=await q; if(r.error) throw r.error; return r.data }
+async function flush(k){
+  if(!sb||!cur) return; const aid=cur; const body=JSON.parse(JSON.stringify(answers[k]));
+  inflight++;
+  try{ await sbDo(sb.from("answers").upsert({assessment_id:aid,pillar:k,body,updated_at:new Date().toISOString()}));
+    if(cur===aid) dirty[k]=false;
+    const pend=loadPending(); if(pend[aid]){delete pend[aid][k]; if(!Object.keys(pend[aid]).length) delete pend[aid]; savePending(pend)}
+    await updateSummary(aid);
+  }catch(e){ console.warn(e); setSave("error","Not saved, kept on this device"); inflight--; return }
+  inflight--; if(!inflight&&!Object.values(dirty).some(Boolean)) setSave("saved","All changes saved to cloud");
+}
+async function updateSummary(aid){
+  const pillars={}; let answered=0; PILLARS.forEach(p=>{const s=pillarScore(p.k);pillars[p.k]=s.kafaa;answered+=s.done});
+  const summary={overall:overall(),pillars,answered};
+  try{ await sbDo(sb.from("assessments").update({summary,updated_at:new Date().toISOString()}).eq("id",aid)); if(curDoc&&cur===aid) curDoc.summary=summary }catch(e){}
+}
+async function flushPending(){
+  const pend=loadPending(); const ids=Object.keys(pend); if(!ids.length||!sb) return;
+  setSave("saving","Uploading saved offline changes");
+  for(const aid of ids){ for(const k of Object.keys(pend[aid])){
+    try{ await sbDo(sb.from("answers").upsert({assessment_id:aid,pillar:k,body:pend[aid][k],updated_at:new Date().toISOString()}));
+      const p2=loadPending(); if(p2[aid]){delete p2[aid][k]; if(!Object.keys(p2[aid]).length) delete p2[aid]; savePending(p2)} }catch(e){ setSave("error","Offline changes still waiting"); return } } }
+  setSave("saved","All changes saved to cloud");
+}
+const rowToDoc=r=>({id:r.id,...(r.info||{}),summary:r.summary||{},updatedAt:r.updated_at});
+async function loadList(){
+  try{ const rows=await sbDo(sb.from("assessments").select("id,info,summary,updated_at").order("updated_at",{ascending:false}));
+    list=rows.map(rowToDoc); listLoaded=true; if(view==="list") render(); }catch(e){ setSave("error","Could not load assessments") }
+}
+async function openAssessment(id){
+  cur=id; curDoc=null; answers={}; tab="AC"; view="work";
+  try{localStorage.setItem("kafaa-fa-last",id)}catch(e){}
+  render(); window.scrollTo(0,0);
+  try{
+    const row=await sbDo(sb.from("assessments").select("id,info,summary,updated_at").eq("id",id).maybeSingle());
+    if(!row){ view="list"; cur=null; try{localStorage.removeItem("kafaa-fa-last")}catch(_){}; render(); return }
+    const ans=await sbDo(sb.from("answers").select("pillar,body").eq("assessment_id",id));
+    if(cur!==id) return;
+    curDoc=rowToDoc(row); const pend=(loadPending()[id])||{};
+    ans.forEach(a=>{answers[a.pillar]=pend[a.pillar]||a.body}); Object.keys(pend).forEach(k=>{if(!answers[k]) answers[k]=pend[k]});
+    render(); refreshPhotoUrls();
+  }catch(e){ setSave("error","Could not load this assessment") }
+}
+function renderKeepFocus(){
+  const a=document.activeElement; if(a&&(a.tagName==="TEXTAREA"||a.tagName==="INPUT")) { softRefresh(); return }
+  const y=window.scrollY; render(); window.scrollTo(0,y);
+}
+function softRefresh(){
+  const app=$("#app"); const tmp=document.createElement("div"); tmp.innerHTML=workView();
+  const ns=tmp.querySelector(".summary"), os=app.querySelector(".summary"); if(ns&&os) os.replaceWith(ns);
+  const nt=tmp.querySelector(".ptabs"), ot=app.querySelector(".ptabs"); if(nt&&ot) ot.replaceWith(nt);
+}
+const photoUrl={};
+async function refreshPhotoUrls(){
+  const paths=[]; Object.values(answers).forEach(a=>Object.values((a&&a.items)||{}).forEach(it=>(it.photos||[]).forEach(p=>{if(!photoUrl[p]) paths.push(p)})));
+  if(!paths.length) return;
+  try{ const r=await sbDo(sb.storage.from(BUCKET).createSignedUrls(paths,60*60*12)); r.forEach(x=>{ if(x.signedUrl) photoUrl[x.path]=x.signedUrl }); renderKeepFocus() }catch(e){}
+}
+
+/* ---------- photos ---------- */
+async function compress(file){
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+  try{ const bmp=await createImageBitmap(file); const m=1600, sc=Math.min(1,m/Math.max(bmp.width,bmp.height));
+    if(sc===1&&file.size<1.5e6) return file;
+    const c=document.createElement("canvas"); c.width=Math.round(bmp.width*sc); c.height=Math.round(bmp.height*sc);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b||file),"image/jpeg",.82));
+  }catch(e){ return file }
+}
+let photoTarget=null;
+$("#fileIn").addEventListener("change",async ev=>{
+  const files=[...ev.target.files]; ev.target.value=""; if(!photoTarget||!sb) return;
+  const {k,i,aid}=photoTarget; const key=k+"_"+i;
+  for(const f of files){
+    uploading[key]=(uploading[key]||0)+1; renderKeepFocus(); setSave("saving","Uploading photo");
+    try{ const blob=await compress(f); const ext=(blob.type||"image/jpeg").split("/")[1].replace("jpeg","jpg");
+      const path=`${aid}/${k}${i+1}_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
+      await sbDo(sb.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||"image/jpeg",upsert:false}));
+      if(cur===aid){ const A=itemsFor(k); A.items[i]=A.items[i]||{}; A.items[i].photos=[...(A.items[i].photos||[]),path]; markDirty(k); }
+      photoUrl[path]=URL.createObjectURL(blob);
+    }catch(e){ console.warn(e); setSave("error","Photo could not be uploaded. Use JPEG or PNG and check your connection.") }
+    uploading[key]--; renderKeepFocus();
+  }
+});
+
+/* ---------- events ---------- */
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button,img[data-view]"); if(!t) return;
+  if(t.id==="newBtn"||t.id==="newBtn2"){curEdit=null;view="new";render();$("#f_school")?.focus();return}
+  if(t.id==="backList"){cur=null;curDoc=null;view="list";try{localStorage.removeItem("kafaa-fa-last")}catch(_){};render();loadList();return}
+  if(t.id==="signOut"){await sb.auth.signOut();location.reload();return}
+  if(t.id==="cancelNew"){view=curEdit&&curEdit.id?"work":"list";render();return}
+  if(t.dataset.open){openAssessment(t.dataset.open);return}
+  if(t.id==="editSite"){curEdit=curDoc;view="new";render();return}
+  if(t.id==="delSite"){confirmDelete();return}
+  if(t.dataset.tab){tab=t.dataset.tab;const y=$(".ptabs")?.getBoundingClientRect().top+window.scrollY-70;render();if(t.classList.contains("barrow")||t.classList.contains("btn"))window.scrollTo(0,y);return}
+  if(t.dataset.score&&canWrite){const i=+t.dataset.q;const A=itemsFor(tab);A.items[i]=A.items[i]||{};
+    const v=t.dataset.score==="NA"?"NA":+t.dataset.score; A.items[i].score=(A.items[i].score===v)?null:v; markDirty(tab);
+    const y=window.scrollY; render(); window.scrollTo(0,y); return}
+  if(t.dataset.tbc&&canWrite){const i=+t.dataset.q;const A=itemsFor(tab);A.items[i]=A.items[i]||{};
+    const v=+t.dataset.tbc; A.items[i].tbc=(A.items[i].tbc===v)?null:v; markDirty(tab); const y=window.scrollY; render(); window.scrollTo(0,y); return}
+  if(t.dataset.addph!=null){photoTarget={k:tab,i:+t.dataset.addph,aid:cur};$("#fileIn").click();return}
+  if(t.dataset.rmph){const i=+t.dataset.q, id=t.dataset.rmph;const A=itemsFor(tab);
+    A.items[i].photos=(A.items[i].photos||[]).filter(x=>x!==id); markDirty(tab); renderKeepFocus();
+    try{await sb.storage.from(BUCKET).remove([id])}catch(_){} return}
+  if(t.dataset.view){const v=document.createElement("div");v.className="viewer";v.innerHTML=`<img src="${esc(photoUrl[t.dataset.view]||"")}" alt="Evidence photo"><button class="btn small">Close</button>`;v.addEventListener("click",()=>v.remove());document.body.appendChild(v);return}
+});
+document.addEventListener("input",e=>{
+  const t=e.target; if(!canWrite) return;
+  if(t.classList.contains("qnote")){const i=+t.dataset.q;const A=itemsFor(tab);A.items[i]=A.items[i]||{};A.items[i].note=t.value;markDirty(tab);
+    const card=t.closest(".q"); const it=A.items[i]; const flag=typeof it.score==="number"&&it.score>3&&!(it.photos&&it.photos.length)&&!(it.note&&it.note.trim()); card.classList.toggle("flag",flag); const ef=card.querySelector(".evflag"); if(ef&&!flag) ef.remove(); return}
+  if(t.id==="pnote"){const A=itemsFor(t.dataset.k);A.note=t.value;markDirty(t.dataset.k)}
+});
+document.addEventListener("focusout",e=>{ if(e.target.classList&&(e.target.classList.contains("qnote")||e.target.id==="pnote")) setTimeout(()=>{ if(view==="work"&&!(document.activeElement&&document.activeElement.tagName==="TEXTAREA")) softRefresh() },50) });
+document.addEventListener("submit",async e=>{
+  if(e.target.id==="loginForm"){ e.preventDefault(); const em=$("#l_email").value.trim(), pw=$("#l_pw").value;
+    $("#l_btn").disabled=true; const r=await sb.auth.signInWithPassword({email:em,password:pw});
+    if(r.error){ $("#l_err").textContent="Sign-in failed. Check the email and password your administrator gave you."; $("#l_btn").disabled=false; return }
+    session=r.data.session; startApp(); return }
+  if(e.target.id!=="newForm") return; e.preventDefault(); if(!sb) return;
+  const v=id=>$("#"+id).value.trim(); const info={school:v("f_school"),code:v("f_code"),region:v("f_region"),zone:v("f_zone"),contract:v("f_contract"),stage:v("f_stage"),visitDate:v("f_date"),assessorName:v("f_assessor"),tbcRep:v("f_tbc"),notes:v("f_notes")};
+  if(!info.school){$("#f_err").textContent="Enter the school name.";return}
+  $("#f_submit").disabled=true; setSave("saving","Saving site");
+  try{
+    if(curEdit&&curEdit.id){ await sbDo(sb.from("assessments").update({info,updated_at:new Date().toISOString()}).eq("id",curEdit.id)); Object.assign(curDoc,info); setSave("saved","All changes saved to cloud"); view="work"; render() }
+    else { const row=await sbDo(sb.from("assessments").insert({info,summary:{overall:null,pillars:{},answered:0}}).select("id").single());
+      setSave("saved","All changes saved to cloud"); openAssessment(row.id) }
+  }catch(err){ $("#f_err").textContent="Could not save. Check your connection and try again."; $("#f_submit").disabled=false; setSave("error","Not saved") }
+});
+function confirmDelete(){
+  const d=document.createElement("div");d.className="dlg";d.innerHTML=`<div class="panel" role="dialog" aria-modal="true"><h2>Delete this assessment?</h2><p class="muted">${esc(curDoc.school)} and all its scores and notes will be removed for everyone. This cannot be undone.</p><div class="formactions"><button class="btn" id="dYes">Delete assessment</button><button class="btn ghost" id="dNo">Keep it</button></div></div>`;
+  document.body.appendChild(d); d.querySelector("#dNo").onclick=()=>d.remove();
+  d.querySelector("#dYes").onclick=async()=>{ const id=cur; d.remove(); try{ await sbDo(sb.from("assessments").delete().eq("id",id)) }catch(e){ setSave("error","Could not delete") } cur=null;view="list";try{localStorage.removeItem("kafaa-fa-last")}catch(_){};render();loadList() };
+}
+window.addEventListener("online",()=>{if(sb)flushPending()});
+window.addEventListener("beforeunload",e=>{ if(Object.values(dirty).some(Boolean)){ e.preventDefault(); e.returnValue="" } });
+
+/* ---------- boot ---------- */
+async function startApp(){
+  canWrite=true; db=true; setSave("saved","Connected to cloud");
+  const u=session&&session.user; myName=(u&&u.email)||"";
+  render(); await loadList(); flushPending();
+  let last=null; try{last=localStorage.getItem("kafaa-fa-last")}catch(e){}
+  if(last) openAssessment(last);
+}
+function loginView(){
+  $("#app").innerHTML=`<div class="panel" style="max-width:420px;margin:24px auto"><div class="eyebrow">Kafaa Efficiency Excellence</div><h1>Sign in</h1>
+  <p class="muted">Use the email and password your Kafaa administrator created for you.</p>
+  <form id="loginForm" class="formgrid" style="grid-template-columns:1fr"><label class="f">Email<input id="l_email" type="email" autocomplete="username" required></label>
+  <label class="f">Password<input id="l_pw" type="password" autocomplete="current-password" required></label>
+  <button class="btn" id="l_btn" type="submit">Sign in</button><p id="l_err" class="muted" role="alert"></p></form></div>`;
+}
+render();
+(async()=>{
+  if(!SUPABASE_URL.startsWith("https://")||!window.supabase){ $("#app").innerHTML=`<div class="banner err"><b>Setup needed.</b> Paste your Supabase Project URL and anon key into the two lines at the top of the script in index.html.</div>`; setSave("error","Not configured"); return }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const r=await sb.auth.getSession(); session=r.data.session;
+  if(!session){ setSave("idle","Signed out"); loginView(); return }
+  startApp();
+})();
+</script>
+
+</body>
+</html>
